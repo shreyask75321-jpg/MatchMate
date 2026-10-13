@@ -225,7 +225,7 @@ function Register() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        axios.get("http://localhost:5000/api/tournaments")
+        axios.get(`${import.meta.env.VITE_API_URL}/api/tournaments`)
             .then((response) => {
                 setTournaments(response.data);
             })
@@ -280,7 +280,7 @@ function Register() {
             setTeamName("");
 
             const updated = await axios.get(
-                "http://localhost:5000/api/tournaments"
+                `${import.meta.env.VITE_API_URL}/api/tournaments`
             );
             setTournaments(updated.data);
         } catch (err) {
