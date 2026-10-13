@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+const API_BASE_URL = (
+    import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
+
 function Scoreboard() {
     const [scores, setScores] = useState([]);
     const [selectedGame, setSelectedGame] = useState("All Games");
@@ -10,13 +14,23 @@ function Scoreboard() {
 
     useEffect(() => {
         const fetchScores = async () => {
-            try {                
+            try {
+                if (!API_BASE_URL) {
+                    throw new Error("VITE_API_URL is not configured.");
+                }
+
                 const response = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/scores`
+                    `${API_BASE_URL}/api/scores`
                 );
-                setScores(response.data);
-            } catch {
-                setError("Unable to load leaderboard. Please try again later.");
+
+                setScores(
+                    Array.isArray(response.data) ? response.data : []
+                );
+            } catch (err) {
+                console.error("Failed to load leaderboard:", err);
+                setError(
+                    "Unable to load leaderboard. Please try again later."
+                );
             } finally {
                 setLoading(false);
             }
@@ -28,7 +42,9 @@ function Scoreboard() {
     const games = useMemo(
         () => [
             "All Games",
-            ...new Set(scores.map((score) => score.game).filter(Boolean))
+            ...new Set(
+                scores.map((score) => score.game).filter(Boolean)
+            )
         ],
         [scores]
     );

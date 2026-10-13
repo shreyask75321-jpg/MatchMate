@@ -1,7 +1,10 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import axios from "axios";
+
+const API_BASE_URL = (
+    import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
 
 function Tournaments() {
     const [tournaments, setTournaments] = useState([]);
@@ -13,11 +16,19 @@ function Tournaments() {
     useEffect(() => {
         const fetchTournaments = async () => {
             try {
+                if (!API_BASE_URL) {
+                    throw new Error("VITE_API_URL is not configured.");
+                }
+
                 const response = await axios.get(
-                    `${import.meta.env.VITE_API_URL}/api/tournaments`
+                    `${API_BASE_URL}/api/tournaments`
                 );
-                setTournaments(response.data);
-            } catch {
+
+                setTournaments(
+                    Array.isArray(response.data) ? response.data : []
+                );
+            } catch (err) {
+                console.error("Failed to load tournaments:", err);
                 setError(
                     "Unable to load tournaments. Please try again later."
                 );
@@ -63,16 +74,15 @@ function Tournaments() {
     const getAvailability = (tournament) => {
         const maximum = Number(tournament.maxTeams) || 0;
         const registered = Number(tournament.registeredTeams) || 0;
+        const remaining = Math.max(0, maximum - registered);
 
         if (tournament.status !== "Open") {
             return {
                 label: tournament.status || "Closed",
                 available: false,
-                remaining: Math.max(0, maximum - registered)
+                remaining
             };
         }
-
-        const remaining = Math.max(0, maximum - registered);
 
         return {
             label: remaining > 0 ? "Registration Open" : "Full",
@@ -133,6 +143,20 @@ function Tournaments() {
                                 const availability =
                                     getAvailability(tournament);
 
+                                const maximum =
+                                    Number(tournament.maxTeams) || 0;
+
+                                const registered =
+                                    Number(tournament.registeredTeams) || 0;
+
+                                const capacityPercentage =
+                                    maximum > 0
+                                        ? Math.min(
+                                              100,
+                                              (registered / maximum) * 100
+                                          )
+                                        : 0;
+
                                 return (
                                     <article
                                         className="tournament-card"
@@ -159,20 +183,12 @@ function Tournaments() {
                                         <div className="tournament-stats">
                                             <div>
                                                 <span>TEAM CAPACITY</span>
-                                                <strong>
-                                                    {Number(
-                                                        tournament.maxTeams
-                                                    ) || 0}
-                                                </strong>
+                                                <strong>{maximum}</strong>
                                             </div>
 
                                             <div>
                                                 <span>REGISTERED</span>
-                                                <strong>
-                                                    {Number(
-                                                        tournament.registeredTeams
-                                                    ) || 0}
-                                                </strong>
+                                                <strong>{registered}</strong>
                                             </div>
 
                                             <div>
@@ -187,20 +203,7 @@ function Tournaments() {
                                             <div
                                                 className="capacity-fill"
                                                 style={{
-                                                    width: `${
-                                                        tournament.maxTeams > 0
-                                                            ? Math.min(
-                                                                  100,
-                                                                  ((Number(
-                                                                      tournament.registeredTeams
-                                                                  ) || 0) /
-                                                                      Number(
-                                                                          tournament.maxTeams
-                                                                      )) *
-                                                                      100
-                                                              )
-                                                            : 0
-                                                    }%`
+                                                    width: `${capacityPercentage}%`
                                                 }}
                                             />
                                         </div>

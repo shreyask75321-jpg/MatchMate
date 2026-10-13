@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+const API_BASE_URL = (
+    import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
+
 function Timetable() {
     const [matches, setMatches] = useState([]);
     const [search, setSearch] = useState("");
@@ -12,11 +16,19 @@ function Timetable() {
     useEffect(() => {
         const fetchMatches = async () => {
             try {
+                if (!API_BASE_URL) {
+                    throw new Error("VITE_API_URL is not configured.");
+                }
+
                 const response = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/matches`
+                    `${API_BASE_URL}/api/matches`
                 );
-                setMatches(response.data);
-            } catch {
+
+                setMatches(
+                    Array.isArray(response.data) ? response.data : []
+                );
+            } catch (err) {
+                console.error("Failed to load matches:", err);
                 setError("Unable to load matches. Please try again later.");
             } finally {
                 setLoading(false);
@@ -29,7 +41,9 @@ function Timetable() {
     const games = useMemo(
         () => [
             "All Games",
-            ...new Set(matches.map((match) => match.game).filter(Boolean))
+            ...new Set(
+                matches.map((match) => match.game).filter(Boolean)
+            )
         ],
         [matches]
     );
@@ -47,7 +61,9 @@ function Timetable() {
                     .join(" ")
                     .toLowerCase();
 
-                const matchesSearch = searchText.includes(search.toLowerCase());
+                const matchesSearch = searchText.includes(
+                    search.toLowerCase()
+                );
 
                 const matchesGame =
                     selectedGame === "All Games" ||
@@ -148,13 +164,18 @@ function Timetable() {
                             {filteredMatches.length} match
                             {filteredMatches.length !== 1 ? "es" : ""} found
                         </span>
-                        <span>All times shown in your browser's local time zone</span>
+                        <span>
+                            All times shown in your browser's local time zone
+                        </span>
                     </div>
 
                     {filteredMatches.length > 0 ? (
                         <section className="match-list">
                             {filteredMatches.map((match) => (
-                                <article className="match-card" key={match._id}>
+                                <article
+                                    className="match-card"
+                                    key={match._id}
+                                >
                                     <div className="match-card-heading">
                                         <div>
                                             <span className="match-game">
@@ -165,7 +186,9 @@ function Timetable() {
 
                                         <span
                                             className={`match-status ${
-                                                (match.status || "Upcoming")
+                                                (
+                                                    match.status || "Upcoming"
+                                                )
                                                     .toLowerCase()
                                                     .replace(/\s+/g, "-")
                                             }`}
@@ -180,7 +203,9 @@ function Timetable() {
                                             <strong>{match.teamA}</strong>
                                         </div>
 
-                                        <span className="versus-label">VS</span>
+                                        <span className="versus-label">
+                                            VS
+                                        </span>
 
                                         <div className="match-team match-team-right">
                                             <span>TEAM B</span>
@@ -199,13 +224,16 @@ function Timetable() {
                                         <div>
                                             <span>Time</span>
                                             <strong>
-                                                {formatTime(match.matchDate) || "TBA"}
+                                                {formatTime(match.matchDate) ||
+                                                    "TBA"}
                                             </strong>
                                         </div>
 
                                         <div>
                                             <span>Venue</span>
-                                            <strong>{match.venue || "Online"}</strong>
+                                            <strong>
+                                                {match.venue || "Online"}
+                                            </strong>
                                         </div>
                                     </div>
                                 </article>

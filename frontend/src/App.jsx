@@ -1,12 +1,20 @@
-
-import { NavLink, Routes, Route, Navigate } from "react-router-dom";
+import {
+    NavLink,
+    Routes,
+    Route,
+    Navigate,
+    useLocation
+} from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import Tournaments from "./Tournaments";
 import Scoreboard from "./Scoreboard";
 import Timetable from "./Timetable";
 import "./App.css";
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import axios from "axios";
+
+const API_BASE_URL = (
+    import.meta.env.VITE_API_URL || ""
+).replace(/\/+$/, "");
 
 function Home() {
     const [tournaments, setTournaments] = useState([]);
@@ -14,19 +22,39 @@ function Home() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-            Promise.all([
-            axios.get(`${import.meta.env.VITE_API_URL}/api/tournaments`),
-            axios.get(`${import.meta.env.VITE_API_URL}/api/matches`)
-            ])
-            .then(([tournamentResponse, matchResponse]) => {
-                setTournaments(tournamentResponse.data);
-                setMatches(matchResponse.data);
-            })
-            .catch(() => {
+        const fetchHomeData = async () => {
+            try {
+                if (!API_BASE_URL) {
+                    throw new Error("VITE_API_URL is not configured.");
+                }
+
+                const [tournamentResponse, matchResponse] =
+                    await Promise.all([
+                        axios.get(`${API_BASE_URL}/api/tournaments`),
+                        axios.get(`${API_BASE_URL}/api/matches`)
+                    ]);
+
+                setTournaments(
+                    Array.isArray(tournamentResponse.data)
+                        ? tournamentResponse.data
+                        : []
+                );
+
+                setMatches(
+                    Array.isArray(matchResponse.data)
+                        ? matchResponse.data
+                        : []
+                );
+            } catch (err) {
+                console.error("Failed to load home page data:", err);
                 setTournaments([]);
                 setMatches([]);
-            })
-            .finally(() => setLoading(false));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchHomeData();
     }, []);
 
     const featuredTournaments = tournaments
@@ -116,7 +144,9 @@ function Home() {
 
                                 <NavLink
                                     to="/register"
-                                    state={{ tournamentId: tournament._id }}
+                                    state={{
+                                        tournamentId: tournament._id
+                                    }}
                                     className="primary-button"
                                 >
                                     Join Tournament
@@ -147,7 +177,10 @@ function Home() {
                 ) : upcomingMatches.length > 0 ? (
                     <div className="home-card-grid">
                         {upcomingMatches.map((match) => (
-                            <article className="home-feature-card" key={match._id}>
+                            <article
+                                className="home-feature-card"
+                                key={match._id}
+                            >
                                 <span className="home-card-game">
                                     {match.game}
                                 </span>
@@ -225,17 +258,47 @@ function Register() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        axios.get(`${import.meta.env.VITE_API_URL}/api/tournaments`)
-            .then((response) => {
-                setTournaments(response.data);
-            })
-            .catch(() => {
-                setError("Unable to load tournaments. Please try again later.");
-            })
-            .finally(() => {
+        const fetchTournaments = async () => {
+            try {
+                if (!API_BASE_URL) {
+                    throw new Error("VITE_API_URL is not configured.");
+                }
+
+                const response = await axios.get(
+                    `${API_BASE_URL}/api/tournaments`
+                );
+
+                const data = Array.isArray(response.data)
+                    ? response.data
+                    : [];
+
+                setTournaments(data);
+
+                if (
+                    selectedTournamentId &&
+                    !data.some(
+                        (tournament) =>
+                            tournament._id === selectedTournamentId
+                    )
+                ) {
+                    setSelectedId("");
+                }
+            } catch (err) {
+                console.error(
+                    "Failed to load registration tournaments:",
+                    err
+                );
+
+                setError(
+                    "Unable to load tournaments. Please try again later."
+                );
+            } finally {
                 setLoading(false);
-            });
-    }, []);
+            }
+        };
+
+        fetchTournaments();
+    }, [selectedTournamentId]);
 
     const availableTournaments = tournaments.filter((tournament) => {
         const remaining =
@@ -254,6 +317,13 @@ function Register() {
         setMessage("");
         setError("");
 
+        if (!API_BASE_URL) {
+            setError(
+                "The API URL is not configured. Please try again later."
+            );
+            return;
+        }
+
         if (!selectedTournament) {
             setError("Please select an available tournament.");
             return;
@@ -263,7 +333,7 @@ function Register() {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/registrations",
+                `${API_BASE_URL}/api/registrations`,
                 {
                     playerName,
                     email,
@@ -273,19 +343,29 @@ function Register() {
             );
 
             setMessage(
-                response.data.message || "Registration successful!"
+                response.data?.message || "Registration successful!"
             );
+
             setPlayerName("");
             setEmail("");
             setTeamName("");
 
             const updated = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/tournaments`
+                `${API_BASE_URL}/api/tournaments`
             );
-            setTournaments(updated.data);
+
+            setTournaments(
+                Array.isArray(updated.data) ? updated.data : []
+            );
         } catch (err) {
+            console.error(
+                "Registration or tournament refresh failed:",
+                err
+            );
+
             setError(
                 err.response?.data?.error ||
+                err.response?.data?.message ||
                 "Registration failed. Please try again."
             );
         } finally {
@@ -296,7 +376,9 @@ function Register() {
     return (
         <div className="container client-register-page">
             <section className="register-hero">
-                <span className="hero-tag">YOUR NEXT MATCH STARTS HERE</span>
+                <span className="hero-tag">
+                    YOUR NEXT MATCH STARTS HERE
+                </span>
                 <h1>Join the Competition</h1>
                 <p>
                     Choose your tournament, register your team, and get ready
@@ -362,6 +444,7 @@ function Register() {
                         <label htmlFor="tournamentId">
                             Select Tournament
                         </label>
+
                         <select
                             id="tournamentId"
                             value={selectedId}
@@ -394,7 +477,9 @@ function Register() {
                                     {Math.max(
                                         0,
                                         Number(selectedTournament.maxTeams) -
-                                        Number(selectedTournament.registeredTeams)
+                                        Number(
+                                            selectedTournament.registeredTeams
+                                        )
                                     )}
                                 </p>
                             </div>
@@ -446,46 +531,35 @@ function App() {
                     MATCHMATE
                 </NavLink>
 
-                
-            <nav className="main-nav">
-                <NavLink to="/">Home</NavLink>
-                <NavLink to="/tournaments">Browse Tournaments</NavLink>
-                <NavLink to="/register">Join Tournament</NavLink>
-                <NavLink to="/scoreboard">Leaderboard</NavLink>
-                <NavLink to="/timetable">Match Schedule</NavLink>
-                <NavLink to="/about">About</NavLink>
-            </nav>
+                <nav className="main-nav">
+                    <NavLink to="/">Home</NavLink>
+                    <NavLink to="/tournaments">
+                        Browse Tournaments
+                    </NavLink>
+                    <NavLink to="/register">Join Tournament</NavLink>
+                    <NavLink to="/scoreboard">Leaderboard</NavLink>
+                    <NavLink to="/timetable">Match Schedule</NavLink>
+                    <NavLink to="/about">About</NavLink>
+                </nav>
             </header>
 
             <main>
                 <Routes>
                     <Route path="/" element={<Home />} />
-
                     <Route
                         path="/tournaments"
                         element={<Tournaments />}
                     />
-
-                    <Route
-                        path="/register"
-                        element={<Register />}
-                    />
-
+                    <Route path="/register" element={<Register />} />
                     <Route
                         path="/scoreboard"
                         element={<Scoreboard />}
                     />
-
                     <Route
                         path="/timetable"
                         element={<Timetable />}
                     />
-
-                    <Route
-                        path="/about"
-                        element={<About />}
-                    />
-
+                    <Route path="/about" element={<About />} />
                     <Route
                         path="*"
                         element={<Navigate to="/" replace />}
