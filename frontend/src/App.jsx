@@ -375,15 +375,24 @@ function Register() {
 
     return (
         <div className="container client-register-page">
-            <section className="register-hero">
-                <span className="hero-tag">
-                    YOUR NEXT MATCH STARTS HERE
-                </span>
-                <h1>Join the Competition</h1>
-                <p>
-                    Choose your tournament, register your team, and get ready
-                    to compete in the MatchMate arena.
-                </p>
+            <section
+                className="register-hero"
+                style={{
+                    backgroundImage: "url('/images/join.png')"
+                }}
+            >
+                <div className="register-hero-content">
+                    <span className="hero-tag">
+                        YOUR NEXT MATCH STARTS HERE
+                    </span>
+
+                    <h1>Join the Competition</h1>
+
+                    <p>
+                        Choose your tournament, register your team, and get
+                        ready to compete in the MatchMate arena.
+                    </p>
+                </div>
             </section>
 
             <section className="register-panel">
@@ -543,29 +552,27 @@ function App() {
                 </nav>
             </header>
 
-            <main>
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route
-                        path="/tournaments"
-                        element={<Tournaments />}
-                    />
-                    <Route path="/register" element={<Register />} />
-                    <Route
-                        path="/scoreboard"
-                        element={<Scoreboard />}
-                    />
-                    <Route
-                        path="/timetable"
-                        element={<Timetable />}
-                    />
-                    <Route path="/about" element={<About />} />
-                    <Route
-                        path="*"
-                        element={<Navigate to="/" replace />}
-                    />
-                </Routes>
-            </main>
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route
+                    path="/tournaments"
+                    element={<Tournaments />}
+                />
+                <Route path="/register" element={<Register />} />
+                <Route
+                    path="/scoreboard"
+                    element={<Scoreboard />}
+                />
+                <Route
+                    path="/timetable"
+                    element={<Timetable />}
+                />
+                <Route path="/about" element={<About />} />
+                <Route
+                    path="*"
+                    element={<Navigate to="/" replace />}
+                />
+            </Routes>
         </>
     );
 }

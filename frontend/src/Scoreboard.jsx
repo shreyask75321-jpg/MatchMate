@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 
 const API_BASE_URL = (
     import.meta.env.VITE_API_URL || ""
@@ -7,30 +6,29 @@ const API_BASE_URL = (
 
 function Scoreboard() {
     const [scores, setScores] = useState([]);
-    const [selectedGame, setSelectedGame] = useState("All Games");
     const [search, setSearch] = useState("");
+    const [selectedGame, setSelectedGame] = useState("All Games");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
         const fetchScores = async () => {
             try {
-                if (!API_BASE_URL) {
-                    throw new Error("VITE_API_URL is not configured.");
-                }
+                setLoading(true);
+                setError("");
 
-                const response = await axios.get(
+                const response = await fetch(
                     `${API_BASE_URL}/api/scores`
                 );
 
-                setScores(
-                    Array.isArray(response.data) ? response.data : []
-                );
+                if (!response.ok) {
+                    throw new Error("Unable to load leaderboard.");
+                }
+
+                const data = await response.json();
+                setScores(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("Failed to load leaderboard:", err);
-                setError(
-                    "Unable to load leaderboard. Please try again later."
-                );
+                setError(err.message || "Failed to load leaderboard.");
             } finally {
                 setLoading(false);
             }
@@ -39,60 +37,80 @@ function Scoreboard() {
         fetchScores();
     }, []);
 
-    const games = useMemo(
-        () => [
-            "All Games",
-            ...new Set(
-                scores.map((score) => score.game).filter(Boolean)
-            )
-        ],
-        [scores]
-    );
+    const games = [
+        "All Games",
+        ...new Set(
+            scores
+                .map((score) => score.game)
+                .filter(Boolean)
+        ),
+    ];
 
-    const filteredScores = useMemo(() => {
-        return scores
-            .filter((score) => {
-                const matchesGame =
+    const filteredScores = scores
+        .filter((score) => {
+            const teamName = score.teamName || score.team || "";
+            const gameName = score.game || "";
+
+            return (
+                teamName.toLowerCase().includes(search.toLowerCase()) &&
+                (
                     selectedGame === "All Games" ||
-                    score.game === selectedGame;
-
-                const matchesSearch = String(score.teamName || "")
-                    .toLowerCase()
-                    .includes(search.toLowerCase());
-
-                return matchesGame && matchesSearch;
-            })
-            .sort(
-                (a, b) =>
-                    Number(b.points || 0) - Number(a.points || 0) ||
-                    Number(b.wins || 0) - Number(a.wins || 0)
+                    gameName === selectedGame
+                )
             );
-    }, [scores, selectedGame, search]);
+        })
+        .sort((a, b) => {
+            const pointsDifference =
+                (Number(b.points) || 0) -
+                (Number(a.points) || 0);
+
+            if (pointsDifference !== 0) {
+                return pointsDifference;
+            }
+
+            return (
+                (Number(b.wins) || 0) -
+                (Number(a.wins) || 0)
+            );
+        });
 
     return (
-        <main className="container leaderboard-page">
-            <section className="leaderboard-hero">
-                <span className="hero-tag">PROVE YOUR PLACE</span>
-                <h1>Global Leaderboard</h1>
-                <p>
-                    Track team performance, compare points, and see who is
-                    climbing the MatchMate rankings.
-                </p>
+        <div className="container leaderboard-page">
+            <section
+                className="leaderboard-hero"
+                style={{
+                    backgroundImage: "url('/images/leaderboard.png')",
+                }}
+            >
+                <div className="leaderboard-hero-content">
+                    <span className="hero-tag">
+                        THE BEST OF THE BEST
+                    </span>
+
+                    <h1>Leaderboard</h1>
+
+                    <p>
+                        Track team rankings, compare points, and see
+                        who dominates the MatchMate arena.
+                    </p>
+                </div>
             </section>
 
-            <section className="leaderboard-filters">
+            <div className="leaderboard-filters">
                 <input
-                    type="search"
+                    type="text"
                     placeholder="Search for a team..."
-                    aria-label="Search teams"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
+                    aria-label="Search teams"
                 />
 
                 <select
-                    aria-label="Filter leaderboard by game"
                     value={selectedGame}
-                    onChange={(event) => setSelectedGame(event.target.value)}
+                    onChange={(event) =>
+                        setSelectedGame(event.target.value)
+                    }
+                    aria-label="Filter by game"
                 >
                     {games.map((game) => (
                         <option key={game} value={game}>
@@ -100,73 +118,91 @@ function Scoreboard() {
                         </option>
                     ))}
                 </select>
-            </section>
+            </div>
 
-            {loading && <p role="status">Loading leaderboard...</p>}
+            <div className="leaderboard-summary">
+                <span>
+                    {filteredScores.length} teams ranked
+                </span>
 
-            {error && <p role="alert">{error}</p>}
+                <span>Ranked by points, then wins</span>
+            </div>
 
-            {!loading && !error && (
-                <>
-                    <div className="leaderboard-summary">
-                        <span>{filteredScores.length} teams ranked</span>
-                        <span>Ranked by points, then wins</span>
-                    </div>
+            {loading ? (
+                <p>Loading leaderboard...</p>
+            ) : error ? (
+                <p className="error-message">{error}</p>
+            ) : filteredScores.length === 0 ? (
+                <div className="empty-state">
+                    <h2>No teams found</h2>
+                    <p>
+                        Try another team name or select a different game.
+                    </p>
+                </div>
+            ) : (
+                <div className="leaderboard-table-wrapper">
+                    <table className="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Team</th>
+                                <th>Game</th>
+                                <th>Wins</th>
+                                <th>Losses</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
 
-                    {filteredScores.length > 0 ? (
-                        <div className="leaderboard-table-wrapper">
-                            <table className="leaderboard-table">
-                                <thead>
-                                    <tr>
-                                        <th>Rank</th>
-                                        <th>Team</th>
-                                        <th>Game</th>
-                                        <th>Wins</th>
-                                        <th>Losses</th>
-                                        <th>Points</th>
+                        <tbody>
+                            {filteredScores.map((score, index) => {
+                                const teamName =
+                                    score.teamName ||
+                                    score.team ||
+                                    "Unknown Team";
+
+                                return (
+                                    <tr
+                                        key={
+                                            score._id ||
+                                            score.id ||
+                                            `${teamName}-${index}`
+                                        }
+                                    >
+                                        <td>
+                                            <span
+                                                className={`rank-badge rank-${index + 1}`}
+                                            >
+                                                {index + 1}
+                                            </span>
+                                        </td>
+
+                                        <td className="leaderboard-team">
+                                            {teamName}
+                                        </td>
+
+                                        <td>
+                                            {score.game || "—"}
+                                        </td>
+
+                                        <td>
+                                            {Number(score.wins) || 0}
+                                        </td>
+
+                                        <td>
+                                            {Number(score.losses) || 0}
+                                        </td>
+
+                                        <td className="leaderboard-points">
+                                            {Number(score.points) || 0}
+                                        </td>
                                     </tr>
-                                </thead>
-
-                                <tbody>
-                                    {filteredScores.map((score, index) => (
-                                        <tr key={score._id}>
-                                            <td>
-                                                <span
-                                                    className={
-                                                        index < 3
-                                                            ? `rank-badge rank-${index + 1}`
-                                                            : "rank-badge"
-                                                    }
-                                                >
-                                                    #{index + 1}
-                                                </span>
-                                            </td>
-                                            <td className="leaderboard-team">
-                                                {score.teamName}
-                                            </td>
-                                            <td>{score.game}</td>
-                                            <td>{score.wins || 0}</td>
-                                            <td>{score.losses || 0}</td>
-                                            <td className="leaderboard-points">
-                                                {score.points || 0}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="empty-state">
-                            <h2>No rankings available</h2>
-                            <p>
-                                No teams match your search, or scores have not
-                                been added yet.
-                            </p>
-                        </div>
-                    )}
-                </>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             )}
-        </main>
+        </div>
     );
 }
 

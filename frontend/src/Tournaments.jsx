@@ -92,15 +92,24 @@ function Tournaments() {
     };
 
     return (
-        <div className="container tournaments-page">
-            <section className="catalogue-hero">
-                <span className="hero-tag">FIND YOUR NEXT CHALLENGE</span>
-                <h1>Explore Tournaments</h1>
-                <p>
-                    Discover competitions, find your game, and get your team
-                    ready for the arena.
-                </p>
-            </section>
+        <main className="container tournaments-page">
+            
+        <section
+        className="catalogue-hero"
+        style={{
+            backgroundImage: "url('/images/browse.png')"
+        }}
+        >
+        <div className="catalogue-hero-content">
+            <p className="hero-eyebrow">FIND YOUR NEXT CHALLENGE</p>
+            <h1>Explore Tournaments</h1>
+            <p>
+            Discover competitions, find your game, and get your team
+            ready for the arena.
+            </p>
+        </div>
+        </section>
+
 
             <section className="tournament-filters">
                 <input
@@ -124,9 +133,13 @@ function Tournaments() {
                 </select>
             </section>
 
-            {loading && <p role="status">Loading tournaments...</p>}
+            {loading && (
+                <p role="status">Loading tournaments...</p>
+            )}
 
-            {error && <p role="alert">{error}</p>}
+            {error && (
+                <p role="alert">{error}</p>
+            )}
 
             {!loading && !error && (
                 <>
@@ -212,8 +225,7 @@ function Tournaments() {
                                             <NavLink
                                                 to="/register"
                                                 state={{
-                                                    tournamentId:
-                                                        tournament._id
+                                                    tournamentId: tournament._id
                                                 }}
                                                 className="primary-button join-button"
                                             >
@@ -221,6 +233,7 @@ function Tournaments() {
                                             </NavLink>
                                         ) : (
                                             <button
+                                                type="button"
                                                 className="primary-button join-button"
                                                 disabled
                                             >
@@ -242,7 +255,7 @@ function Tournaments() {
                     )}
                 </>
             )}
-        </div>
+        </main>
     );
 }
 

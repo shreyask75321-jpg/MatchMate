@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 
 const API_BASE_URL = (
     import.meta.env.VITE_API_URL || ""
@@ -9,27 +8,28 @@ function Timetable() {
     const [matches, setMatches] = useState([]);
     const [search, setSearch] = useState("");
     const [selectedGame, setSelectedGame] = useState("All Games");
-    const [selectedStatus, setSelectedStatus] = useState("All Matches");
+    const [selectedStatus, setSelectedStatus] = useState("All Statuses");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
         const fetchMatches = async () => {
             try {
-                if (!API_BASE_URL) {
-                    throw new Error("VITE_API_URL is not configured.");
-                }
+                setLoading(true);
+                setError("");
 
-                const response = await axios.get(
+                const response = await fetch(
                     `${API_BASE_URL}/api/matches`
                 );
 
-                setMatches(
-                    Array.isArray(response.data) ? response.data : []
-                );
+                if (!response.ok) {
+                    throw new Error("Unable to load match schedule.");
+                }
+
+                const data = await response.json();
+                setMatches(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("Failed to load matches:", err);
-                setError("Unable to load matches. Please try again later.");
+                setError(err.message || "Failed to load matches.");
             } finally {
                 setLoading(false);
             }
@@ -38,101 +38,101 @@ function Timetable() {
         fetchMatches();
     }, []);
 
-    const games = useMemo(
-        () => [
-            "All Games",
-            ...new Set(
-                matches.map((match) => match.game).filter(Boolean)
-            )
-        ],
-        [matches]
-    );
+    const games = [
+        "All Games",
+        ...new Set(
+            matches
+                .map((match) => match.game)
+                .filter(Boolean)
+        ),
+    ];
 
-    const filteredMatches = useMemo(() => {
-        return matches
-            .filter((match) => {
-                const searchText = [
-                    match.tournament,
-                    match.game,
-                    match.teamA,
-                    match.teamB,
-                    match.venue
-                ]
-                    .join(" ")
-                    .toLowerCase();
+    const statuses = [
+        "All Statuses",
+        "Upcoming",
+        "Live",
+        "Completed",
+    ];
 
-                const matchesSearch = searchText.includes(
-                    search.toLowerCase()
-                );
+    const filteredMatches = matches.filter((match) => {
+        const title = match.title || match.matchName || "";
+        const game = match.game || "";
+        const team1 = match.team1 || match.teamA || "";
+        const team2 = match.team2 || match.teamB || "";
+        const status = (match.status || "Upcoming").toLowerCase();
 
-                const matchesGame =
-                    selectedGame === "All Games" ||
-                    match.game === selectedGame;
+        const matchesSearch = [
+            title,
+            game,
+            team1,
+            team2,
+        ].some((value) =>
+            value.toLowerCase().includes(search.toLowerCase())
+        );
 
-                const matchesStatus =
-                    selectedStatus === "All Matches" ||
-                    (match.status || "Upcoming") === selectedStatus;
+        const matchesGame =
+            selectedGame === "All Games" ||
+            game === selectedGame;
 
-                return matchesSearch && matchesGame && matchesStatus;
-            })
-            .sort(
-                (a, b) =>
-                    new Date(a.matchDate).getTime() -
-                    new Date(b.matchDate).getTime()
-            );
-    }, [matches, search, selectedGame, selectedStatus]);
+        const matchesStatus =
+            selectedStatus === "All Statuses" ||
+            status === selectedStatus.toLowerCase();
 
-    const formatDate = (dateValue) => {
-        const date = new Date(dateValue);
+        return matchesSearch && matchesGame && matchesStatus;
+    });
 
-        if (Number.isNaN(date.getTime())) {
-            return "Date to be announced";
-        }
+    const formatDate = (value) => {
+        if (!value) return "Date not announced";
 
-        return date.toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        });
-    };
-
-    const formatTime = (dateValue) => {
-        const date = new Date(dateValue);
+        const date = new Date(value);
 
         if (Number.isNaN(date.getTime())) {
-            return "";
+            return value;
         }
 
-        return date.toLocaleTimeString("en-IN", {
-            hour: "2-digit",
-            minute: "2-digit"
+        return date.toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
         });
     };
 
     return (
-        <main className="container match-schedule-page">
-            <section className="schedule-hero">
-                <span className="hero-tag">YOUR NEXT MATCH AWAITS</span>
-                <h1>Match Schedule</h1>
-                <p>
-                    Explore upcoming fixtures, check match details, and follow
-                    the action across MatchMate tournaments.
-                </p>
+        <div className="container match-schedule-page">
+            <section
+                className="schedule-hero"
+                style={{
+                    backgroundImage: "url('/images/timetable.png')",
+                }}
+            >
+                <div className="schedule-hero-content">
+                    <span className="hero-tag">
+                        EVERY MATCH. EVERY MOMENT.
+                    </span>
+
+                    <h1>Match Timetable</h1>
+
+                    <p>
+                        Keep track of upcoming battles, live matches,
+                        and completed games in the MatchMate arena.
+                    </p>
+                </div>
             </section>
 
-            <section className="schedule-filters">
+            <div className="schedule-filters">
                 <input
-                    type="search"
-                    aria-label="Search matches"
-                    placeholder="Search teams, tournaments, or venues..."
+                    type="text"
+                    placeholder="Search matches, teams, or games..."
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
+                    aria-label="Search matches"
                 />
 
                 <select
-                    aria-label="Filter by game"
                     value={selectedGame}
-                    onChange={(event) => setSelectedGame(event.target.value)}
+                    onChange={(event) =>
+                        setSelectedGame(event.target.value)
+                    }
+                    aria-label="Filter by game"
                 >
                     {games.map((game) => (
                         <option key={game} value={game}>
@@ -142,115 +142,133 @@ function Timetable() {
                 </select>
 
                 <select
-                    aria-label="Filter by match status"
                     value={selectedStatus}
-                    onChange={(event) => setSelectedStatus(event.target.value)}
+                    onChange={(event) =>
+                        setSelectedStatus(event.target.value)
+                    }
+                    aria-label="Filter by match status"
                 >
-                    <option value="All Matches">All Matches</option>
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Live">Live</option>
-                    <option value="Completed">Completed</option>
+                    {statuses.map((status) => (
+                        <option key={status} value={status}>
+                            {status}
+                        </option>
+                    ))}
                 </select>
-            </section>
+            </div>
 
-            {loading && <p role="status">Loading match schedule...</p>}
+            <div className="schedule-summary">
+                <span>
+                    {filteredMatches.length} matches found
+                </span>
 
-            {error && <p role="alert">{error}</p>}
+                <span>
+                    {selectedGame} · {selectedStatus}
+                </span>
+            </div>
 
-            {!loading && !error && (
-                <>
-                    <div className="schedule-summary">
-                        <span>
-                            {filteredMatches.length} match
-                            {filteredMatches.length !== 1 ? "es" : ""} found
-                        </span>
-                        <span>
-                            All times shown in your browser's local time zone
-                        </span>
-                    </div>
+            {loading ? (
+                <p>Loading match schedule...</p>
+            ) : error ? (
+                <p className="error-message">{error}</p>
+            ) : filteredMatches.length === 0 ? (
+                <div className="empty-state">
+                    <h2>No matches found</h2>
+                    <p>
+                        Try changing your search or filter settings.
+                    </p>
+                </div>
+            ) : (
+                <div className="match-list">
+                    {filteredMatches.map((match, index) => {
+                        const team1 =
+                            match.team1 ||
+                            match.teamA ||
+                            "Team 1";
 
-                    {filteredMatches.length > 0 ? (
-                        <section className="match-list">
-                            {filteredMatches.map((match) => (
-                                <article
-                                    className="match-card"
-                                    key={match._id}
-                                >
-                                    <div className="match-card-heading">
-                                        <div>
-                                            <span className="match-game">
-                                                {match.game}
-                                            </span>
-                                            <h2>{match.tournament}</h2>
-                                        </div>
+                        const team2 =
+                            match.team2 ||
+                            match.teamB ||
+                            "Team 2";
 
-                                        <span
-                                            className={`match-status ${
-                                                (
-                                                    match.status || "Upcoming"
-                                                )
-                                                    .toLowerCase()
-                                                    .replace(/\s+/g, "-")
-                                            }`}
-                                        >
-                                            {match.status || "Upcoming"}
+                        const status = (
+                            match.status || "Upcoming"
+                        ).toLowerCase();
+
+                        return (
+                            <article
+                                className="match-card"
+                                key={
+                                    match._id ||
+                                    match.id ||
+                                    `${match.title || match.matchName || "match"}-${index}`
+                                }
+                            >
+                                <div className="match-card-heading">
+                                    <div>
+                                        <span className="match-game">
+                                            {match.game || "Esports"}
                                         </span>
+
+                                        <h2>
+                                            {match.title ||
+                                                match.matchName ||
+                                                `${team1} vs ${team2}`}
+                                        </h2>
                                     </div>
 
-                                    <div className="match-versus">
-                                        <div className="match-team">
-                                            <span>TEAM A</span>
-                                            <strong>{match.teamA}</strong>
-                                        </div>
+                                    <span
+                                        className={`match-status ${
+                                            ["upcoming", "live", "completed"].includes(status)
+                                                ? status
+                                                : ""
+                                        }`}
+                                    >
+                                        {status.charAt(0).toUpperCase() +
+                                            status.slice(1)}
+                                    </span>
+                                </div>
 
-                                        <span className="versus-label">
-                                            VS
-                                        </span>
-
-                                        <div className="match-team match-team-right">
-                                            <span>TEAM B</span>
-                                            <strong>{match.teamB}</strong>
-                                        </div>
+                                <div className="match-versus">
+                                    <div className="match-team">
+                                        <span>TEAM A</span>
+                                        <strong>{team1}</strong>
                                     </div>
 
-                                    <div className="match-details">
-                                        <div>
-                                            <span>Date</span>
-                                            <strong>
-                                                {formatDate(match.matchDate)}
-                                            </strong>
-                                        </div>
+                                    <span className="versus-label">
+                                        VS
+                                    </span>
 
-                                        <div>
-                                            <span>Time</span>
-                                            <strong>
-                                                {formatTime(match.matchDate) ||
-                                                    "TBA"}
-                                            </strong>
-                                        </div>
-
-                                        <div>
-                                            <span>Venue</span>
-                                            <strong>
-                                                {match.venue || "Online"}
-                                            </strong>
-                                        </div>
+                                    <div className="match-team match-team-right">
+                                        <span>TEAM B</span>
+                                        <strong>{team2}</strong>
                                     </div>
-                                </article>
-                            ))}
-                        </section>
-                    ) : (
-                        <div className="empty-state">
-                            <h2>No matches found</h2>
-                            <p>
-                                There are no matching fixtures yet. Try changing
-                                your filters or check back later.
-                            </p>
-                        </div>
-                    )}
-                </>
+                                </div>
+
+                                <div className="match-details">
+                                    <div>
+                                        <span>Date & Time</span>
+                                        <strong>
+                                            {formatDate(
+                                                match.date ||
+                                                match.matchDate ||
+                                                match.startTime
+                                            )}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Venue</span>
+                                        <strong>
+                                            {match.venue || "Online"}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
             )}
-        </main>
+        </div>
     );
 }
 
