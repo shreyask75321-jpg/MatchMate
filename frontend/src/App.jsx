@@ -11,6 +11,7 @@ import Tournaments from "./Tournaments";
 import Scoreboard from "./Scoreboard";
 import Timetable from "./Timetable";
 import "./App.css";
+import Admin from "./Admin";
 
 const API_BASE_URL = (
     import.meta.env.VITE_API_URL || ""
@@ -549,6 +550,7 @@ function App() {
                     <NavLink to="/scoreboard">Leaderboard</NavLink>
                     <NavLink to="/timetable">Match Schedule</NavLink>
                     <NavLink to="/about">About</NavLink>
+                    <NavLink to="/admin">Admin</NavLink>
                 </nav>
             </header>
 
@@ -572,6 +574,8 @@ function App() {
                     path="*"
                     element={<Navigate to="/" replace />}
                 />
+                <Route path="/admin" element={<Admin />} />
+                
             </Routes>
         </>
     );

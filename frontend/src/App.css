@@ -1546,3 +1546,107 @@ textarea {
 .leaderboard-hero-content {
     text-align: center;
 }
+
+.admin-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #10131c;
+  color: #f5f5f5;
+}
+
+.admin-heading,
+.admin-records-heading,
+.admin-actions,
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-login,
+.admin-form,
+.admin-records {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 24px;
+  border: 1px solid #303747;
+  border-radius: 12px;
+  background: #191e2a;
+}
+
+.admin-login {
+  max-width: 420px;
+  display: grid;
+  gap: 16px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-page input,
+.admin-page select,
+.admin-page button {
+  padding: 10px 12px;
+  border: 1px solid #3b4559;
+  border-radius: 6px;
+}
+
+.admin-page input,
+.admin-page select {
+  width: 100%;
+  background: #10131c;
+  color: white;
+}
+
+.admin-page button {
+  cursor: pointer;
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid #303747;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-message {
+  padding: 12px;
+  background: #252d3d;
+  border-radius: 6px;
+}
+
+@media (max-width: 650px) {
+  .admin-page {
+    padding: 16px;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
