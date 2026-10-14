@@ -554,29 +554,41 @@ function App() {
                 </nav>
             </header>
 
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route
-                    path="/tournaments"
-                    element={<Tournaments />}
-                />
-                <Route path="/register" element={<Register />} />
-                <Route
-                    path="/scoreboard"
-                    element={<Scoreboard />}
-                />
-                <Route
-                    path="/timetable"
-                    element={<Timetable />}
-                />
-                <Route path="/about" element={<About />} />
-                <Route
-                    path="*"
-                    element={<Navigate to="/" replace />}
-                />
-                <Route path="/admin" element={<Admin />} />
-                
-            </Routes>
+            
+<Routes>
+    {window.location.hostname === "matchmate-backend-1c7w.onrender.com" ? (
+        <>
+            <Route path="/admin" element={<Admin />} />
+            <Route
+                path="*"
+                element={<Navigate to="/admin" replace />}
+            />
+        </>
+    ) : (
+        <>
+            <Route path="/" element={<Home />} />
+            <Route
+                path="/tournaments"
+                element={<Tournaments />}
+            />
+            <Route path="/register" element={<Register />} />
+            <Route
+                path="/scoreboard"
+                element={<Scoreboard />}
+            />
+            <Route
+                path="/timetable"
+                element={<Timetable />}
+            />
+            <Route path="/about" element={<About />} />
+            <Route
+                path="*"
+                element={<Navigate to="/" replace />}
+            />
+        </>
+    )}
+</Routes>
+
         </>
     );
 }
